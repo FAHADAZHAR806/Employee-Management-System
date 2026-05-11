@@ -23,10 +23,10 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Employees", href: "/dashboard/employees", icon: Users },
-  { name: "Departments", href: "/dashboard/departments", icon: Building2 },
-  { name: "Payroll", href: "/dashboard/payroll", icon: CreditCard },
-  { name: "Attendance", href: "/dashboard/attendance", icon: CalendarCheck },
+  { name: "Employees", href: "/employees", icon: Users },
+  { name: "Departments", href: "/departments", icon: Building2 },
+  { name: "Payroll", href: "/payroll", icon: CreditCard },
+  { name: "Attendance", href: "/attendance", icon: CalendarCheck },
 ];
 
 export function AppSidebar() {

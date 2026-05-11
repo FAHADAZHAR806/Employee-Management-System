@@ -19,7 +19,11 @@ const EmployeeSchema = new Schema<IEmployee>(
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String },
-    department: { type: Schema.Types.ObjectId, ref: "Department" },
+    department: {
+      type: Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
     designation: { type: String, required: true },
     salary: { type: Number, required: true },
     joiningDate: { type: Date, default: Date.now },

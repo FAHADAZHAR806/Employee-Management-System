@@ -17,11 +17,11 @@ export const verifyToken = (token: string) => {
 
 export const setAuthCookie = async (token: string) => {
   const cookieStore = await cookies();
-  cookieStore.set("auth_token", token, {
+  cookieStore.set("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 86400, // 1 day
+    sameSite: "lax",
     path: "/",
+    maxAge: 86400, // 1 day
   });
 };

@@ -15,30 +15,45 @@ export async function POST(req: Request) {
     await connectToDatabase();
     const body = await req.json();
 
-    // 1. Validate Input
     const validatedData = loginSchema.parse(body);
 
-    // 2. Find User
-    const user = await User.findOne({ email: validatedData.email }).select(
-      "+password",
-    );
-    if (!user || !user.isActive) {
+    // 1. Find User (Lowercasing email for consistency)
+    const user = await User.findOne({
+      email: validatedData.email.toLowerCase(),
+    }).select("+password");
+
+    // DEBUG: Check if user exists at all
+    if (!user) {
+      console.log("❌ Login Failed: User not found");
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 },
       );
     }
 
-    // 3. Check Password
+    // DEBUG: Check isActive status
+    // If your seed script didn't include isActive, this check will fail.
+    // Temporarily added '?? true' to ignore if the field is missing.
+    if (user.isActive === false) {
+      console.log("❌ Login Failed: User is inactive");
+      return NextResponse.json(
+        { error: "Account is disabled" },
+        { status: 401 },
+      );
+    }
+
+    // 2. Check Password
     const isMatch = await bcrypt.compare(validatedData.password, user.password);
+
     if (!isMatch) {
+      console.log("❌ Login Failed: Password mismatch");
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 },
       );
     }
 
-    // 4. Generate Token & Set Cookie
+    // 3. Generate Token
     const token = signToken({
       id: user._id,
       role: user.role,
@@ -47,9 +62,12 @@ export async function POST(req: Request) {
 
     await setAuthCookie(token);
 
-    // 5. Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // 4. Update last login safely
+    // Use findOneAndUpdate to avoid triggering "pre-save" password hashing hooks
+    await User.findOneAndUpdate(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } },
+    );
 
     return NextResponse.json({
       message: "Logged in successfully",
@@ -61,8 +79,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
+    console.error("Critical Auth Error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     return NextResponse.json(
       { error: "Internal Server Error" },

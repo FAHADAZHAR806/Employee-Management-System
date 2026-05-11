@@ -1,31 +1,59 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken } from "@/lib/auth-service";
+import { jwtVerify } from "jose";
 
-// Define which routes are protected
-const protectedRoutes = ["/dashboard", "/employees", "/payroll", "/settings"];
-const adminOnlyRoutes = ["/payroll", "/settings"];
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
-export function middleware(req: NextRequest) {
-  const token = req.cookies.get("auth_token")?.value;
+export async function middleware(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
   const { pathname } = req.nextUrl;
 
-  // 1. If trying to access protected route without token
-  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+  // 1. PUBLIC ROUTES (Login page logic)
+  if (pathname === "/login") {
+    if (token) {
+      try {
+        await jwtVerify(token, JWT_SECRET);
+        // If logged in, redirect away from login to the ROOT (Dashboard)
+        return NextResponse.redirect(new URL("/", req.url));
+      } catch (e) {
+        const response = NextResponse.next();
+        response.cookies.delete("token");
+        return response;
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // 2. PROTECTED ROUTES
+  // Since your dashboard is the ROOT "/", we check for "/" and other sub-routes
+  const protectedPaths = [
+    "/",
+    "/employees",
+    "/payroll",
+    "/settings",
+    "/departments",
+  ];
+  const isProtected = protectedPaths.some(
+    (path) => pathname === path || pathname.startsWith(path + "/"),
+  );
+
+  if (isProtected) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    const decoded: any = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
 
-    // 2. Role-Based Check (RBAC)
-    if (adminOnlyRoutes.some((route) => pathname.startsWith(route))) {
-      if (decoded.role !== "SUPER_ADMIN" && decoded.role !== "HR_MANAGER") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+      // Role-Based Check for Admin routes
+      const adminRoutes = ["/payroll", "/settings"];
+      if (adminRoutes.some((route) => pathname.startsWith(route))) {
+        if (payload.role !== "admin") {
+          return NextResponse.redirect(new URL("/", req.url));
+        }
       }
+    } catch (error) {
+      return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 
