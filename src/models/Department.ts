@@ -1,21 +1,19 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface IDepartment extends Document {
-  name: string;
-  code: string; // e.g., "ENG", "MKT", "HR"
-  managerId?: mongoose.Types.ObjectId; // Reference to an Employee
-  description?: string;
-}
-
-const DepartmentSchema = new Schema<IDepartment>(
+const DepartmentSchema = new Schema(
   {
-    name: { type: String, required: true, unique: true },
-    code: { type: String, required: true, unique: true, uppercase: true },
-    managerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    name: { type: String, required: true, unique: true, trim: true },
+    code: { type: String, required: true, unique: true, trim: true }, // 'code' field added and required
     description: { type: String },
+    manager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true },
 );
 
-export default mongoose.models.Department ||
-  mongoose.model<IDepartment>("Department", DepartmentSchema);
+const Department =
+  mongoose.models.Department || mongoose.model("Department", DepartmentSchema);
+export default Department;

@@ -1,92 +1,208 @@
 "use client";
 
-import { CreditCard, Download, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import axios from "axios";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  ColumnDef,
+} from "@tanstack/react-table";
+import { GeneratePayrollModal } from "../../../components/dashboard/generate-payroll-modal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/tables/data-table"; // Reusing our Phase 7 Table
+
+// Define the type for our data
+type PayrollRecord = {
+  _id: string;
+  month: string;
+  netSalary: number;
+  status: "Pending" | "Paid";
+  employeeId?: {
+    name: string;
+    employeeId: string;
+    designation: string;
+  };
+};
 
 export default function PayrollPage() {
-  // Column definitions for TanStack Table
-  const columns = [
-    {
-      accessorKey: "employee",
-      header: "Employee",
-      cell: ({ row }: any) => (
-        <div className="font-medium text-zinc-900 dark:text-zinc-100">
-          {row.original.name}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "amount",
-      header: "Base Salary",
-      cell: ({ row }: any) => formatCurrency(row.original.amount),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }: any) => {
-        const status = row.getValue("status");
-        return (
-          <Badge
-            className={`rounded-full px-3 py-1 font-normal ${
-              status === "Paid"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                : "bg-amber-50 text-amber-700 border-amber-100"
-            }`}
-          >
-            {status}
-          </Badge>
-        );
+  const [data, setData] = useState<PayrollRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Memoized fetch function to trigger after adding new payroll
+  const refreshPayroll = useCallback(() => {
+    setLoading(true);
+    axios
+      .get("/api/payroll")
+      .then((res) => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching payroll:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    refreshPayroll();
+  }, [refreshPayroll]);
+
+  // Define Columns with TanStack standards
+  const columns = useMemo<ColumnDef<PayrollRecord>[]>(
+    () => [
+      {
+        accessorKey: "employeeId.name",
+        header: "Employee",
+        cell: ({ row }) => (
+          <div className="flex flex-col">
+            <span className="font-bold text-zinc-900 dark:text-zinc-100">
+              {row.original.employeeId?.name || "Unknown"}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {row.original.employeeId?.employeeId || "N/A"}
+            </span>
+          </div>
+        ),
       },
-    },
-    {
-      id: "actions",
-      header: "Invoice",
-      cell: () => (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-zinc-500 hover:text-zinc-900"
-        >
-          <Download className="w-4 h-4" />
-        </Button>
-      ),
-    },
-  ];
+      {
+        accessorKey: "month",
+        header: "Month",
+        cell: ({ row }) => (
+          <span className="font-medium text-zinc-600 dark:text-zinc-400">
+            {row.original.month}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "netSalary",
+        header: "Net Salary",
+        cell: ({ row }) => (
+          <span className="font-semibold">
+            ${row.original.netSalary.toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return (
+            <Badge
+              variant={status === "Paid" ? "success" : "warning"}
+              className="rounded-lg px-3"
+            >
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: () => (
+          <button className="text-blue-600 hover:text-blue-700 hover:underline font-semibold text-sm transition-all">
+            Download Slip
+          </button>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 py-4">
+      {/* Header Section */}
+      <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
-          <p className="text-zinc-500">
-            Manage disbursements and salary history.
+          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-poppins">
+            Payroll Management
+          </h1>
+          <p className="text-zinc-500 text-lg font-light mt-1">
+            Review disbursements and track financial history.
           </p>
         </div>
-        <Button className="rounded-xl bg-zinc-900 dark:bg-zinc-100 gap-2">
-          <CreditCard className="w-4 h-4" />
-          Run Payroll
-        </Button>
+
+        {/* This component handles the modal and registration logic */}
+        <GeneratePayrollModal onRefresh={refreshPayroll} />
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input placeholder="Search records..." className="pl-10 rounded-xl" />
-        </div>
-        {/* Filter buttons would go here */}
+      {/* Premium Table Container */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/50">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="text-xs uppercase font-bold tracking-[0.1em] py-5 px-6 text-zinc-400"
+                  >
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-48 text-center text-zinc-400 font-light"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
+                    Calculating Payroll Data...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-48 text-center text-zinc-400 font-light"
+                >
+                  No payroll records found for this period.
+                </TableCell>
+              </TableRow>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors border-zinc-100 dark:border-zinc-800"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-5 px-6">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
-
-      <DataTable columns={columns} data={mockPayrollData} />
     </div>
   );
 }
-
-// Helper for display
-const formatCurrency = (val: number) => `$${val.toLocaleString()}`;
-const mockPayrollData = [
-  { name: "Alice Freeman", amount: 8500, status: "Paid" },
-  { name: "Bob Miller", amount: 7200, status: "Pending" },
-];

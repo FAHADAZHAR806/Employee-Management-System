@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { toast } from "sonner"; // Replaced useToast
-import { Loader2, Lock, Mail } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
+import { Loader2, Lock, Mail, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,41 +36,45 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue, // Demo credentials fill karne ke liye
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
-  // 3. Submit Handler
+  // 3. Submit Handler using Axios
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const response = await axios.post("/api/auth/login", data);
 
-      const result = await response.json();
+      if (response.status === 200) {
+        toast.success("Welcome back!", {
+          description: "Redirecting to your dashboard...",
+        });
 
-      if (!response.ok) {
-        throw new Error(result.error || "Invalid credentials");
+        router.push("/");
+        router.refresh();
       }
-
-      toast.success("Welcome back!", {
-        description: "Redirecting to your dashboard...",
-      });
-
-      router.push("/departments");
-      router.refresh();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.error || "Invalid credentials";
       toast.error("Authentication Failed", {
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
   }
+
+  // Demo helper
+  const fillDemoCredentials = () => {
+    setValue("email", "admin@company.com");
+    setValue("password", "admin123");
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-950">
@@ -90,7 +95,7 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                 <Input
                   id="email"
-                  placeholder="name@company.com"
+                  placeholder="Enter Email Here"
                   className="pl-10 rounded-xl"
                   {...register("email")}
                 />
@@ -107,6 +112,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Enter Password Here "
                   className="pl-10 rounded-xl"
                   {...register("password")}
                 />
@@ -118,9 +124,25 @@ export default function LoginPage() {
               )}
             </div>
 
+            {/* Demo Credentials Suggestion */}
+            <div
+              onClick={fillDemoCredentials}
+              className="flex items-start gap-2 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-xl cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors border border-dashed border-zinc-300 dark:border-zinc-700"
+            >
+              <Info className="h-4 w-4 mt-0.5 text-zinc-500" />
+              <div className="text-xs space-y-1">
+                <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                  Click to use Demo Account:
+                </p>
+                <p className="text-zinc-500">
+                  Email: admin@company.com | Pass: admin123
+                </p>
+              </div>
+            </div>
+
             <Button
               type="submit"
-              className="w-full rounded-xl bg-zinc-900 dark:bg-zinc-100 py-6"
+              className="w-full rounded-xl bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 py-6 font-bold"
               disabled={isLoading}
             >
               {isLoading ? (

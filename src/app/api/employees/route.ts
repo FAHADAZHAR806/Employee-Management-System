@@ -1,38 +1,32 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
-import * as z from "zod";
+import bcrypt from "bcryptjs";
 
-const employeeSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  designation: z.string().min(2),
-  salary: z.number().positive(),
-  status: z.enum(["Active", "Inactive", "On Leave"]),
-  joiningDate: z.string(),
-});
+export async function GET() {
+  try {
+    await connectToDatabase();
+    // Populate allows us to see Department Name instead of just the ID
+    const employees = await Employee.find().populate("department", "name");
+    return NextResponse.json(employees);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const validatedData = employeeSchema.parse(body);
 
-    const newEmployee = await Employee.create(validatedData);
+    // Hash password for new employee
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const newEmployee = await Employee.create({
+      ...body,
+      password: hashedPassword,
+    });
 
     return NextResponse.json(newEmployee, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-}
-
-export async function GET() {
-  try {
-    await connectToDatabase();
-    const employees = await Employee.find({}).sort({ createdAt: -1 });
-    return NextResponse.json(employees);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
