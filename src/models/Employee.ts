@@ -1,16 +1,25 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const EmployeeSchema = new Schema(
+const EmployeeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    age: { type: Number, required: true },
     email: { type: String, required: true, unique: true },
-    employeeId: { type: String, required: true, unique: true }, // Format: EMP-001
-    designation: { type: String, required: true },
-    department: { type: String, required: true },
-    joiningDate: { type: Date, required: true },
+    employeeId: { type: String, required: true, unique: true },
+    phone: { type: String, required: true },
     salary: { type: Number, required: true },
-    status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
-    avatar: { type: String, default: "" },
+    // Link to Department model
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
+    avatar: { type: String }, // Stores Base64 string for the image
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+    },
   },
   { timestamps: true },
 );
