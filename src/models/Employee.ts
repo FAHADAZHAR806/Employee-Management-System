@@ -2,28 +2,15 @@ import mongoose, { Schema } from "mongoose";
 
 const EmployeeSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Link to Auth User
-    employeeId: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    employeeId: { type: String, required: true, unique: true }, // Format: EMP-001
     designation: { type: String, required: true },
-    department: {
-      type: Schema.Types.ObjectId,
-      ref: "Department",
-      required: true,
-    },
+    department: { type: String, required: true },
+    joiningDate: { type: Date, required: true },
     salary: { type: Number, required: true },
-    status: {
-      type: String,
-      enum: ["Active", "Inactive", "On Leave"],
-      default: "Active",
-    },
-    skills: [{ type: String }],
-    joiningDate: { type: Date, default: Date.now },
-    // Enterprise Details
-    emergencyContact: {
-      name: String,
-      phone: String,
-      relation: String,
-    },
+    status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+    avatar: { type: String, default: "" },
   },
   { timestamps: true },
 );
