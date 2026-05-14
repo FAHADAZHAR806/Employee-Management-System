@@ -1,9 +1,9 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const LeaveSchema = new Schema(
+const LeaveSchema = new mongoose.Schema(
   {
-    employeeId: {
-      type: Schema.Types.ObjectId,
+    employee: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
       required: true,
     },
@@ -20,7 +20,7 @@ const LeaveSchema = new Schema(
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
     },
-    appliedDate: { type: Date, default: Date.now },
+    appliedAt: { type: Date, default: Date.now },
   },
   { timestamps: true },
 );

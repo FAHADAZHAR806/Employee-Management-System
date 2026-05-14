@@ -1,16 +1,21 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
-const AttendanceSchema = new Schema(
+const AttendanceSchema = new mongoose.Schema(
   {
-    employeeId: {
-      type: Schema.Types.ObjectId,
+    employee: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
       required: true,
     },
     date: { type: String, required: true }, // Format: YYYY-MM-DD
     checkIn: { type: Date },
     checkOut: { type: Date },
-    status: { type: String, enum: ["Present", "Absent", "Late", "Half-Day"] },
+    status: {
+      type: String,
+      enum: ["Present", "Absent", "Late", "On Leave"],
+      default: "Present",
+    },
+    location: { type: String }, // Optional: GPS or IP address
   },
   { timestamps: true },
 );

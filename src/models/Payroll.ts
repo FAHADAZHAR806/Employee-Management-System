@@ -1,22 +1,40 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const PayrollSchema = new Schema(
+export interface IPayroll extends Document {
+  employee: mongoose.Types.ObjectId;
+  month: number;
+  year: number;
+  baseSalary: number;
+  bonus: number;
+  deductions: number;
+  netSalary: number;
+  status: "Draft" | "Approved" | "Paid";
+  paymentDate?: Date;
+  transactionId?: string;
+}
+
+const PayrollSchema: Schema = new Schema(
   {
-    employeeId: {
-      type: Schema.Types.ObjectId,
-      ref: "Employee",
-      required: true,
-    },
-    month: { type: String, required: true }, // e.g., "April 2026"
-    basicSalary: { type: Number, required: true },
-    allowances: { type: Number, default: 0 },
+    employee: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
+    month: { type: Number, required: true },
+    year: { type: Number, required: true },
+    baseSalary: { type: Number, required: true },
+    bonus: { type: Number, default: 0 },
     deductions: { type: Number, default: 0 },
     netSalary: { type: Number, required: true },
-    status: { type: String, enum: ["Pending", "Paid"], default: "Pending" },
+    status: {
+      type: String,
+      enum: ["Draft", "Approved", "Paid"],
+      default: "Draft",
+    },
     paymentDate: { type: Date },
+    transactionId: { type: String },
   },
   { timestamps: true },
 );
 
+// Ensure an employee doesn't get paid twice for the same month/year
+PayrollSchema.index({ employee: 1, month: 1, year: 1 }, { unique: true });
+
 export default mongoose.models.Payroll ||
-  mongoose.model("Payroll", PayrollSchema);
+  mongoose.model<IPayroll>("Payroll", PayrollSchema);

@@ -28,7 +28,7 @@ const navigation = [
   { name: "Employees", href: "/employees", icon: Users },
   { name: "Departments", href: "/departments", icon: Building2 },
   { name: "Payroll", href: "/payroll", icon: CreditCard },
-  { name: "Attendance", href: "/leave", icon: CalendarCheck },
+  { name: "Attendance", href: "/attendance", icon: CalendarCheck },
 ];
 
 export function AppSidebar() {
